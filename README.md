@@ -249,17 +249,51 @@ ERROR: [Douyin] 7694938814749396265: Fresh cookies (not necessarily logged in) a
 
 ---
 
-## 六、已知限制
+## 六、常见问题
+
+**`Error opening data file .../chi_sim.traineddata`**
+
+tesseract 装了但中文语言包没装好。macOS 用 Homebrew：
+
+```bash
+brew install tesseract-lang
+```
+
+Debian/Ubuntu：
+
+```bash
+sudo apt install tesseract-ocr-chi-sim
+```
+
+没装中文包也能跑：脚本会自动降级成纯英文 `-l eng`，画面文字只剩英文部分。
+
+**`Fresh cookies (not necessarily logged in) are needed`**
+
+这不是错误，是 yt-dlp 对抖音的正常反应。脚本会自己切到网页端兜底，看到这行说明兜底已生效。
+
+**转写很慢**
+
+`small` 模型在 M 系列 Mac 上是 6–10 倍速，Intel 上只有 4.6 倍速。改用 `DY_WHISPER_MODEL=base` 快一倍，准确率略降。
+
+**`ocr_lines: 0`**
+
+说明这台机器的 OCR 不可用（没装 tesseract、或 macOS 没编译 vision-ocr）。逐字稿不受影响。
+检查方法：`python ocr.py 随便一张图.jpg`，退出码 3 就是没有 OCR。
+
+---
+
+## 七、已知限制
 
 - **不是所有视频都能下**：图文作品没有音轨、部分视频即使兜底也拿不到，会打印 `ERROR:` 原因，别反复重试
 - **直播回放不在范围内**，这是给短视频/图文用的
 - **纯 CPU 转写**：M 系列 Mac 上 `small` 约 6–10 倍速；Intel i5 约 4.6 倍速。1 分钟的视频整体 1–3 分钟跑完
+- **tesseract 的中文识别很差**：花字、艺术字基本认不出，只适合打印体。要高质量中文 OCR 得自己接 PaddleOCR 替换 `ocr.py`
 - **抖音会变**：这套兜底依赖 `iesdouyin` 分享页的结构，抖音改了就得跟着改
 - **仅供个人学习研究**：请尊重原作者版权，不要拿下载的内容做二次分发
 
 ---
 
-## 七、文件说明
+## 八、文件说明
 
 | 文件 | 作用 |
 |---|---|
