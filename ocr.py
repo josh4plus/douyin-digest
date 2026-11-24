@@ -16,7 +16,8 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LANGS = "chi_sim+eng"
+# 依次尝试：中英混合 > 纯英文。有的机器装了 tesseract 却没装中文包
+LANG_CHAIN = ("chi_sim+eng", "eng")
 
 
 def vision_ocr() -> str | None:
@@ -43,19 +44,33 @@ def run_vision(binary: str, files: list[str]) -> list[str]:
     return p.stdout.splitlines()
 
 
+def _ocr_one(binary: str, f: str, lang: str) -> tuple[list[str], str]:
+    """返回 (识别到的行, 是否语言包缺失)。"""
+    try:
+        p = subprocess.run(
+            [binary, f, "stdout", "-l", lang, "--psm", "6"],
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace")  # tesseract 会吐出非 UTF-8 字节
+    except OSError:
+        return [], False
+    if "Failed loading language" in (p.stderr or ""):
+        return [], True
+    if p.returncode != 0:
+        return [], False
+    return [line.strip() for line in p.stdout.splitlines() if line.strip()], False
+
+
 def run_tesseract(binary: str, files: list[str]) -> list[str]:
     out: list[str] = []
+    lang = LANG_CHAIN[0]
     for f in files:
-        try:
-            p = subprocess.run(
-                [binary, f, "stdout", "-l", LANGS, "--psm", "6"],
-                capture_output=True, text=True)
-        except OSError:
-            return []
-        if p.returncode != 0:
-            return []
-        text = " ".join(line.strip() for line in p.stdout.splitlines() if line.strip())
-        out.append(Path(f).name + "\t" + text)
+        lines, missing = _ocr_one(binary, f, lang)
+        if missing and lang != LANG_CHAIN[-1]:
+            # 中文包没装/装坏了，退回纯英文；总比整段跳过强
+            lang = LANG_CHAIN[-1]
+            lines, _ = _ocr_one(binary, f, lang)
+        if lines:
+            out.append(Path(f).name + "\t" + " ".join(lines))
     return out
 
 
