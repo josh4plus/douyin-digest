@@ -1,0 +1,3 @@
+faster-whisper>=1.1
+# av 19 去掉了 metadata_errors 参数，faster_whisper 1.2.1 还在传，会直接 TypeError
+av<19
